@@ -24,12 +24,15 @@ use Eccube\Service\PurchaseFlow\PurchaseFlow;
 use Plugin\SamplePayment\Entity\PaymentStatus;
 use Plugin\SamplePayment\Repository\PaymentStatusRepository;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * クレジットカード(トークン決済)の決済処理を行う.
  */
 class CreditCard implements PaymentMethodInterface
 {
+
     /**
      * @var Order
      */
@@ -56,20 +59,28 @@ class CreditCard implements PaymentMethodInterface
     private $purchaseFlow;
 
     /**
+     * @var RouterInterface
+     */
+    private $router;
+
+    /**
      * CreditCard constructor.
      *
      * @param OrderStatusRepository $orderStatusRepository
      * @param PaymentStatusRepository $paymentStatusRepository
      * @param PurchaseFlow $shoppingPurchaseFlow
+     * @param RouterInterface $router
      */
     public function __construct(
         OrderStatusRepository $orderStatusRepository,
         PaymentStatusRepository $paymentStatusRepository,
-        PurchaseFlow $shoppingPurchaseFlow
+        PurchaseFlow $shoppingPurchaseFlow,
+        RouterInterface $router
     ) {
         $this->orderStatusRepository = $orderStatusRepository;
         $this->paymentStatusRepository = $paymentStatusRepository;
         $this->purchaseFlow = $shoppingPurchaseFlow;
+        $this->router = $router;
     }
 
     /**
@@ -128,15 +139,21 @@ class CreditCard implements PaymentMethodInterface
      * クレジットカードの決済処理を行う.
      *
      * @return PaymentResult
+     *
+     * @throws \Exception
      */
     public function checkout()
     {
+        $this->postLogRequest(['key' => 'key0123', 'no' => 1, 'status' => PaymentStatus::OUTSTANDING]);
+
         // 決済サーバに仮売上のリクエスト送る(設定等によって送るリクエストは異なる)
         // ...
         //
         $token = $this->Order->getSamplePaymentToken();
 
         if (true) {
+            $this->postLogRequest(['key' => 'key0123', 'no' => 1, 'status' => PaymentStatus::ENABLED]);
+
             // 受注ステータスを新規受付へ変更
             $OrderStatus = $this->orderStatusRepository->find(OrderStatus::NEW);
             $this->Order->setOrderStatus($OrderStatus);
@@ -155,6 +172,8 @@ class CreditCard implements PaymentMethodInterface
             $result = new PaymentResult();
             $result->setSuccess(true);
         } else {
+            $this->postLogRequest(['key' => 'key0123', 'no' => 1, 'status' => PaymentStatus::PROVISIONAL_SALES]);
+
             // 受注ステータスを購入処理中へ変更
             $OrderStatus = $this->orderStatusRepository->find(OrderStatus::PROCESSING);
             $this->Order->setOrderStatus($OrderStatus);
@@ -188,5 +207,31 @@ class CreditCard implements PaymentMethodInterface
     public function setOrder(Order $Order)
     {
         $this->Order = $Order;
+    }
+
+    /**
+     * API post request processing
+     *
+     * @param array $data
+     *
+     * @return array
+     *
+     * @throws \Exception
+     */
+    private function postLogRequest($data)
+    {
+        $url = $this->router->generate('sample_payment_log', array(), UrlGeneratorInterface::ABSOLUTE_URL);
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        $result = curl_exec($curl);
+        $info = curl_getinfo($curl);
+        $message = curl_error($curl);
+        $info['message'] = $message;
+        curl_close($curl);
+
+        return [$result, $info];
     }
 }

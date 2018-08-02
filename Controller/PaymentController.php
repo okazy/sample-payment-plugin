@@ -28,6 +28,7 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -201,5 +202,35 @@ class PaymentController extends AbstractController
         ]);
 
         return $Order;
+    }
+
+    /**
+     * @Route("/sample_payment_log", name="sample_payment_log")
+     *
+     * @param Request $request
+     *
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     */
+    public function log(Request $request)
+    {
+        // TODO: 他からアクセスできないようにチェックする必要がある
+        $key = $request->get('key');
+        if ($key != 'key0123') {
+            throw new BadRequestHttpException();
+        }
+
+        $orderNo = $request->get('no');
+        $orderStatus = $request->get('status');
+
+        /** @var Order $Order */
+        $Order = $this->orderRepository->find($orderNo);
+
+        // 決済ステータスを未決済へ変更
+        $PaymentStatus = $this->paymentStatusRepository->find($orderStatus);
+        $Order->setSamplePaymentPaymentStatus($PaymentStatus);
+
+        $this->entityManager->flush();
+
+        return $this->json('OK', 200);
     }
 }
