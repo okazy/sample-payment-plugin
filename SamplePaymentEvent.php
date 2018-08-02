@@ -13,11 +13,23 @@
 
 namespace Plugin\SamplePayment;
 
+use Eccube\Entity\Order;
 use Eccube\Event\TemplateEvent;
+use Eccube\Repository\OrderRepository;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class SamplePaymentEvent implements EventSubscriberInterface
 {
+    /**
+     * @var OrderRepository
+     */
+    private $orderRepository;
+
+    public function __construct(OrderRepository $orderRepository)
+    {
+        $this->orderRepository = $orderRepository;
+    }
+
     /**
      * リッスンしたいサブスクライバのイベント名の配列を返します。
      * 配列のキーはイベント名、値は以下のどれかをしてします。
@@ -37,11 +49,19 @@ class SamplePaymentEvent implements EventSubscriberInterface
     {
         return [
             '@admin/Order/edit.twig' => 'onAdminOrderEditTwig',
+            'Shopping/index.twig' => 'onShoppingIndexTwig',
         ];
     }
 
     public function onAdminOrderEditTwig(TemplateEvent $event)
     {
         $event->addSnippet('@SamplePayment/admin/order_edit.twig');
+    }
+
+    public function onShoppingIndexTwig(TemplateEvent $event)
+    {
+        /** @var Order $Order */
+        $Order = $this->orderRepository->find(1);
+        $event->setParameter('hoge2', $Order->getPhoneNumber());
     }
 }

@@ -13,6 +13,7 @@
 
 namespace Plugin\SamplePayment\Service\Method;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Eccube\Entity\Master\OrderStatus;
 use Eccube\Entity\Order;
 use Eccube\Repository\Master\OrderStatusRepository;
@@ -21,7 +22,9 @@ use Eccube\Service\Payment\PaymentMethodInterface;
 use Eccube\Service\Payment\PaymentResult;
 use Eccube\Service\PurchaseFlow\PurchaseContext;
 use Eccube\Service\PurchaseFlow\PurchaseFlow;
+use Plugin\SamplePayment\Entity\Config;
 use Plugin\SamplePayment\Entity\PaymentStatus;
+use Plugin\SamplePayment\Repository\ConfigRepository;
 use Plugin\SamplePayment\Repository\PaymentStatusRepository;
 use Symfony\Component\Form\FormInterface;
 
@@ -54,6 +57,14 @@ class CreditCard implements PaymentMethodInterface
      * @var PurchaseFlow
      */
     private $purchaseFlow;
+    /**
+     * @var ConfigRepository
+     */
+    private $configRepository;
+    /**
+     * @var EntityManagerInterface
+     */
+    private $entityManager;
 
     /**
      * CreditCard constructor.
@@ -61,15 +72,21 @@ class CreditCard implements PaymentMethodInterface
      * @param OrderStatusRepository $orderStatusRepository
      * @param PaymentStatusRepository $paymentStatusRepository
      * @param PurchaseFlow $shoppingPurchaseFlow
+     * @param ConfigRepository $configRepository
+     * @param EntityManagerInterface $entityManager
      */
     public function __construct(
         OrderStatusRepository $orderStatusRepository,
         PaymentStatusRepository $paymentStatusRepository,
-        PurchaseFlow $shoppingPurchaseFlow
+        PurchaseFlow $shoppingPurchaseFlow,
+        ConfigRepository $configRepository,
+        EntityManagerInterface $entityManager
     ) {
         $this->orderStatusRepository = $orderStatusRepository;
         $this->paymentStatusRepository = $paymentStatusRepository;
         $this->purchaseFlow = $shoppingPurchaseFlow;
+        $this->configRepository = $configRepository;
+        $this->entityManager = $entityManager;
     }
 
     /**
@@ -131,6 +148,11 @@ class CreditCard implements PaymentMethodInterface
      */
     public function checkout()
     {
+        // 決済処理中に変える
+        /** @var Config $Config */
+        $Config = $this->configRepository->find(1);
+        $Config->setApiId('begin2');
+        $this->entityManager->flush($Config);
         // 決済サーバに仮売上のリクエスト送る(設定等によって送るリクエストは異なる)
         // ...
         //

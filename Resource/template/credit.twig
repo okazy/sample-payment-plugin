@@ -1,8 +1,10 @@
 {#
     Shopping/index.twigに以下のスニペットを追記
-    {{ eccube_block_sample_payment_credit_form({ Order: Order, form: form }) }}
+    {{ eccube_block_sample_payment_credit_form({ Order: Order, form: form, hoge2: hoge2}) }}
 #}
 {% block sample_payment_credit_form %}
+    {{ form.vars.BaseInfo.shop_name }}
+
     {% if Order.Payment.getMethodClass == 'Plugin\\SamplePayment\\Service\\Method\\CreditCard' %}
         <script>
             $(function () {
@@ -15,6 +17,9 @@
                     }
                     // サーバ通信してトークンを取得
                     var token = 'aaabbbccc123456';
+                    var hoge1 = {{ form.vars.BaseInfo.shop_name }};
+                    var hoge2 = {{ hoge2 }}
+
 
                     // hiddenにトークンをセット
                     $('#shopping_order_sample_payment_token').val(token);

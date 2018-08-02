@@ -43,6 +43,7 @@ class ConfigController extends AbstractController
      */
     public function index(Request $request)
     {
+        log_info('start sample payment config');
         $Config = $this->configRepository->get();
         $form = $this->createForm(ConfigType::class, $Config);
         $form->handleRequest($request);
